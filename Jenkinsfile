@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         // Use single quotes to avoid Groovy escape issues.
-        // Make sure this path is writable by the user Jenkins runs as.
         BUILD_OUTPUT = 'C:\\Users\\swethasuresh\\works\\code'
     }
 
@@ -12,24 +11,24 @@ pipeline {
             steps {
                 // Use checkout scm so Jenkins uses the repo/branch the job is configured with.
                 checkout scm
-                // If you must force a specific branch, use:
-                // git branch: 'main', credentialsId: 'gitrepo', url: 'https://github.com/swetha-200160/code.git'
             }
         }
 
         stage('Prepare Python env') {
-  steps {
-    bat '''
+            steps {
+                bat '''
 if not exist "C:\\jenkins_tools\\venvs\\project_venv\\Scripts\\python.exe" (
   py -3 -m venv C:\\jenkins_tools\\venvs\\project_venv
 )
 call "C:\\jenkins_tools\\venvs\\project_venv\\Scripts\\activate"
 python -m pip install --upgrade pip
-pip install -r "%WORKSPACE%\\requirements.txt" --cache-dir "C:\\jenkins_tools\\.pip_cache"
+if exist "%WORKSPACE%\\requirements.txt" (
+  pip install -r "%WORKSPACE%\\requirements.txt" --cache-dir "C:\\jenkins_tools\\.pip_cache"
+) else (
+  echo "requirements.txt not found, skipping pip install"
+)
 '''
-  }
-}
-
+            }
         }
 
         stage('Debug - list workspace') {
