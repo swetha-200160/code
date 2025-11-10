@@ -2,15 +2,18 @@ pipeline {
     agent any
 
     environment {
-        BUILD_OUTPUT = "C:\\Users\\swethasuresh\\works\\code"
+        // Use single quotes to avoid Groovy escape issues.
+        // Make sure this path is writable by the user Jenkins runs as.
+        BUILD_OUTPUT = 'C:\\Users\\swethasuresh\\works\\code'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'master',
-                    credentialsId: 'gitrepo',
-                    url: 'https://github.com/swetha-200160/code.git'
+                // Use checkout scm so Jenkins uses the repo/branch the job is configured with.
+                checkout scm
+                // If you must force a specific branch, use:
+                // git branch: 'main', credentialsId: 'gitrepo', url: 'https://github.com/swetha-200160/code.git'
             }
         }
 
@@ -69,7 +72,7 @@ dir "%WORKSPACE%"
                 bat """
 @echo off
 echo ==== GATHER BUILD FILES INTO ZIP ====
-set ARTIFACT_DIR=%WORKSPACE%\\build_artifacts
+set "ARTIFACT_DIR=%WORKSPACE%\\build_artifacts"
 
 REM Remove old artifact folder and recreate
 if exist "%ARTIFACT_DIR%" (
@@ -79,7 +82,8 @@ if exist "%ARTIFACT_DIR%" (
 mkdir "%ARTIFACT_DIR%"
 
 REM Prepare list of files to include
-set INCLUDE_LIST=
+set "INCLUDE_LIST="
+
 if exist "%WORKSPACE%\\AI-Data.csv" set INCLUDE_LIST=%INCLUDE_LIST% "%WORKSPACE%\\AI-Data.csv"
 if exist "%WORKSPACE%\\Project.py" set INCLUDE_LIST=%INCLUDE_LIST% "%WORKSPACE%\\Project.py"
 if exist "%WORKSPACE%\\requirements.txt" set INCLUDE_LIST=%INCLUDE_LIST% "%WORKSPACE%\\requirements.txt"
@@ -88,7 +92,6 @@ if exist "%WORKSPACE%\\README.md" set INCLUDE_LIST=%INCLUDE_LIST% "%WORKSPACE%\\
 if "%INCLUDE_LIST%"=="" (
   echo No build files found to package.
 ) else (
-  REM Use PowerShell Compress-Archive to create a single zip with only the selected files
   powershell -NoProfile -Command "Remove-Item -Force -ErrorAction SilentlyContinue '%ARTIFACT_DIR%\\build_files.zip'; Compress-Archive -Path %INCLUDE_LIST% -DestinationPath '%ARTIFACT_DIR%\\build_files.zip' -Force"
   if exist "%ARTIFACT_DIR%\\build_files.zip" (
     echo Created %ARTIFACT_DIR%\\build_files.zip
@@ -106,12 +109,12 @@ dir "%ARTIFACT_DIR%"
 
         stage('Copy build zip to target') {
             steps {
-                script {
-                    bat """
+                // Groovy expands ${env.BUILD_OUTPUT} here into the batch script.
+                bat """
 @echo off
 echo ==== COPY BUILD ZIP TO TARGET ====
-set ARTIFACT_DIR=%WORKSPACE%\\build_artifacts
-set TARGET_DIR=${env.BUILD_OUTPUT}
+set "ARTIFACT_DIR=%WORKSPACE%\\build_artifacts"
+set "TARGET_DIR=${env.BUILD_OUTPUT}"
 
 if not exist "%ARTIFACT_DIR%" (
   echo Artifact dir missing: %ARTIFACT_DIR%
@@ -135,7 +138,6 @@ if %RC% LEQ 7 (
 echo Copy failed with code %RC%.
 exit /b %RC%
 """
-                }
             }
         }
     }
