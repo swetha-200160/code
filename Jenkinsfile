@@ -17,41 +17,19 @@ pipeline {
             }
         }
 
-        stage('Build (venv + run Project.py)') {
-            steps {
-                echo 'Creating venv, installing requirements, and running Project.py (if present)...'
-                bat '''
-@echo off
-echo ==== BUILD START ====
-setlocal
-
-REM create venv if needed
-if not exist "venv\\Scripts\\python.exe" (
-    py -3 -m venv venv
+        stage('Prepare Python env') {
+  steps {
+    bat '''
+if not exist "C:\\jenkins_tools\\venvs\\project_venv\\Scripts\\python.exe" (
+  py -3 -m venv C:\\jenkins_tools\\venvs\\project_venv
 )
-
-call "venv\\Scripts\\activate"
-
+call "C:\\jenkins_tools\\venvs\\project_venv\\Scripts\\activate"
 python -m pip install --upgrade pip
-
-if exist "requirements.txt" (
-    echo Installing from requirements.txt
-    pip install -r "requirements.txt"
-) else (
-    echo requirements.txt not found — skipping pip install
-)
-
-REM Run Project.py if it exists in workspace root
-if exist "%WORKSPACE%\\Project.py" (
-    echo Running Project.py
-    python "%WORKSPACE%\\Project.py"
-) else (
-    echo Project.py not found in workspace root — skipping run
-)
-
-endlocal
-echo ==== BUILD END ====
+pip install -r "%WORKSPACE%\\requirements.txt" --cache-dir "C:\\jenkins_tools\\.pip_cache"
 '''
+  }
+}
+
             }
         }
 
