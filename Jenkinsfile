@@ -45,24 +45,9 @@ dir "%WORKSPACE%"
 
        stage('Gather Build Files (zip)') {
     steps {
-        // Use single-quoted multi-line string to avoid Groovy variable interpolation.
-        bat '''
-@echo off
-echo ==== GATHER BUILD FILES INTO ZIP (PowerShell) ====
-powershell -NoProfile -Command "
-$artifact = Join-Path $Env:WORKSPACE 'build_artifacts';
-if (Test-Path $artifact) { Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $artifact };
-New-Item -ItemType Directory -Path $artifact | Out-Null;
-$files = @();
-if (Test-Path (Join-Path $Env:WORKSPACE 'AI-Data.csv')) { $files += (Join-Path $Env:WORKSPACE 'AI-Data.csv') };
-if (Test-Path (Join-Path $Env:WORKSPACE 'Project.py')) { $files += (Join-Path $Env:WORKSPACE 'Project.py') };
-if (Test-Path (Join-Path $Env:WORKSPACE 'requirements.txt')) { $files += (Join-Path $Env:WORKSPACE 'requirements.txt') };
-if (Test-Path (Join-Path $Env:WORKSPACE 'README.md')) { $files += (Join-Path $Env:WORKSPACE 'README.md') };
-if ($files.Count -eq 0) { Write-Output 'No build files found to package.'; exit 0 };
-Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $artifact 'build_files.zip');
-Compress-Archive -Path $files -DestinationPath (Join-Path $artifact 'build_files.zip') -Force;
-if (Test-Path (Join-Path $artifact 'build_files.zip')) { Write-Output ('Created ' + (Join-Path $artifact 'build_files.zip')) } else { Write-Error 'Failed to create build_files.zip'; exit 1 }
-"
+        bat '''@echo off
+echo ==== GATHER BUILD FILES INTO ZIP (PowerShell single-line) ====
+powershell -NoProfile -Command "Set-Location -LiteralPath '%WORKSPACE%'; if(-not(Test-Path 'build_artifacts')){ New-Item -ItemType Directory -Name 'build_artifacts' | Out-Null }; $files = @(); if(Test-Path 'AI-Data.csv'){ $files += (Resolve-Path 'AI-Data.csv').Path }; if(Test-Path 'Project.py'){ $files += (Resolve-Path 'Project.py').Path }; if(Test-Path 'requirements.txt'){ $files += (Resolve-Path 'requirements.txt').Path }; if(Test-Path 'README.md'){ $files += (Resolve-Path 'README.md').Path }; if($files.Count -eq 0){ Write-Output 'No build files found to package.'; exit 0 }; Remove-Item -Force -ErrorAction SilentlyContinue 'build_artifacts\\build_files.zip'; Compress-Archive -Path $files -DestinationPath 'build_artifacts\\build_files.zip' -Force; if(Test-Path 'build_artifacts\\build_files.zip'){ Write-Output ('Created ' + (Resolve-Path 'build_artifacts\\build_files.zip')) } else { Write-Error 'Failed to create build_files.zip'; exit 1 }"
 '''
     }
 }
