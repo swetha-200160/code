@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        BUILD_OUTPUT = "C:\Users\swethasuresh\works\code"
+        BUILD_OUTPUT = "C:\\Users\\swethasuresh\\works\\code"
     }
 
     stages {
