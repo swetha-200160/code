@@ -30,7 +30,6 @@ pip install -r "%WORKSPACE%\\requirements.txt" --cache-dir "C:\\jenkins_tools\\.
   }
 }
 
-            }
         }
 
         stage('Debug - list workspace') {
