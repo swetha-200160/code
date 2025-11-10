@@ -44,44 +44,27 @@ dir "%WORKSPACE%"
         }
 
         stage('Gather Build Files (zip)') {
-            steps {
-                bat """
+    steps {
+        bat """
 @echo off
-echo ==== GATHER BUILD FILES INTO ZIP ====
-set "ARTIFACT_DIR=%WORKSPACE%\\build_artifacts"
-
-REM Remove old artifact folder and recreate
-if exist "%ARTIFACT_DIR%" (
-  echo Removing existing %ARTIFACT_DIR%
-  rmdir /S /Q "%ARTIFACT_DIR%"
-)
-mkdir "%ARTIFACT_DIR%"
-
-REM Prepare list of files to include
-set "INCLUDE_LIST="
-
-if exist "%WORKSPACE%\\AI-Data.csv" set INCLUDE_LIST=%INCLUDE_LIST% "%WORKSPACE%\\AI-Data.csv"
-if exist "%WORKSPACE%\\Project.py" set INCLUDE_LIST=%INCLUDE_LIST% "%WORKSPACE%\\Project.py"
-if exist "%WORKSPACE%\\requirements.txt" set INCLUDE_LIST=%INCLUDE_LIST% "%WORKSPACE%\\requirements.txt"
-if exist "%WORKSPACE%\\README.md" set INCLUDE_LIST=%INCLUDE_LIST% "%WORKSPACE%\\README.md"
-
-if "%INCLUDE_LIST%"=="" (
-  echo No build files found to package.
-) else (
-  powershell -NoProfile -Command "Remove-Item -Force -ErrorAction SilentlyContinue '%ARTIFACT_DIR%\\build_files.zip'; Compress-Archive -Path %INCLUDE_LIST% -DestinationPath '%ARTIFACT_DIR%\\build_files.zip' -Force"
-  if exist "%ARTIFACT_DIR%\\build_files.zip" (
-    echo Created %ARTIFACT_DIR%\\build_files.zip
-  ) else (
-    echo Failed to create build_files.zip
-    exit /b 1
-  )
-)
-
-echo ==== ARTIFACT_DIR CONTENTS ====
-dir "%ARTIFACT_DIR%"
+echo ==== GATHER BUILD FILES INTO ZIP (PowerShell) ====
+powershell -NoProfile -Command ^
+  "$artifact = Join-Path $Env:WORKSPACE 'build_artifacts';" ^
+  "if (Test-Path $artifact) { Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $artifact };" ^
+  "New-Item -ItemType Directory -Path $artifact | Out-Null;" ^
+  "$files = @();" ^
+  "if (Test-Path (Join-Path $Env:WORKSPACE 'AI-Data.csv')) { $files += (Join-Path $Env:WORKSPACE 'AI-Data.csv') }" ^
+  "if (Test-Path (Join-Path $Env:WORKSPACE 'Project.py')) { $files += (Join-Path $Env:WORKSPACE 'Project.py') }" ^
+  "if (Test-Path (Join-Path $Env:WORKSPACE 'requirements.txt')) { $files += (Join-Path $Env:WORKSPACE 'requirements.txt') }" ^
+  "if (Test-Path (Join-Path $Env:WORKSPACE 'README.md')) { $files += (Join-Path $Env:WORKSPACE 'README.md') }" ^
+  "if ($files.Count -eq 0) { Write-Output 'No build files found to package.'; exit 0 };" ^
+  "Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $artifact 'build_files.zip');" ^
+  "Compress-Archive -Path $files -DestinationPath (Join-Path $artifact 'build_files.zip') -Force;" ^
+  "if (Test-Path (Join-Path $artifact 'build_files.zip')) { Write-Output 'Created ' + (Join-Path $artifact 'build_files.zip') } else { Write-Error 'Failed to create build_files.zip'; exit 1 }"
 """
-            }
-        }
+    }
+}
+
 
         stage('Copy build zip to target') {
             steps {
